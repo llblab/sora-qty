@@ -42,7 +42,7 @@ export function drawCard(
     crossVisible = true,
     valueVisible = true,
     cached = true,
-  } = {}
+  } = {},
 ) {
   drawBackground(ctx, timeframe, cached);
   if (icon) {
@@ -76,7 +76,7 @@ export function drawBackground(ctx, timeframe = "week", cached = true) {
     ],
     {
       fill: colorBackground,
-    }
+    },
   );
   drawBorder(
     ctx,
@@ -84,7 +84,7 @@ export function drawBackground(ctx, timeframe = "week", cached = true) {
       [iconX - 2, iconY - 2],
       [iconX + iconSize + 2, iconY + iconSize + 2],
     ],
-    { radius: 2 + iconSize / 2 }
+    { radius: 2 + iconSize / 2 },
   );
   drawRuler(ctx, detailsPos, { timeframe });
   drawGradient(ctx, detailsPos, { timeframe });
@@ -94,7 +94,7 @@ export function drawBackground(ctx, timeframe = "week", cached = true) {
       [cardPadding - 2, detailsY1 - 2],
       [detailsX2 + 2, detailsY2 + 2],
     ],
-    { radius: 20 }
+    { radius: 20 },
   );
   if (cached && !backgroundCache[timeframe]) {
     backgroundCache[timeframe] = ctx.getImageData(0, 0, cardWidth, cardHeight);
@@ -104,7 +104,7 @@ export function drawBackground(ctx, timeframe = "week", cached = true) {
 export function drawRuler(
   ctx,
   [[x1, y1], [x2, y2]],
-  { timeframe, color = "black" } = {}
+  { timeframe, color = "black" } = {},
 ) {
   const line =
     {
@@ -131,7 +131,7 @@ export function drawRuler(
         {
           color,
           line,
-        }
+        },
       );
     }
   }
@@ -156,7 +156,7 @@ export function drawGradient(
       month: 0.5,
       year: 0.4,
     }[timeframe] || 0.5,
-  } = {}
+  } = {},
 ) {
   const topGradient = ctx.createLinearGradient(0, y1, 0, y1 + height);
   topGradient.addColorStop(0, color1);
@@ -195,7 +195,13 @@ export function drawToken(ctx, [x, y], token = "") {
 export function drawDetails(
   ctx,
   [[x1, y1], [x2, y2]],
-  { data = [], token, timeframe, valueVisible = true, crossVisible = true } = {}
+  {
+    data = [],
+    token,
+    timeframe,
+    valueVisible = true,
+    crossVisible = true,
+  } = {},
 ) {
   x1 += 1;
   x2 -= 1;
@@ -204,7 +210,7 @@ export function drawDetails(
   const valueY = 195;
   const now = Date.now();
   const start = startOfDay(
-    subDays(now, { week: 6, month: 32, year: 366 }[timeframe])
+    subDays(now, { week: 6, month: 32, year: 366 }[timeframe]),
   ).valueOf();
   const end = endOfDay(now).valueOf();
   const step = (x2 - x1) / (end - start);
@@ -244,7 +250,7 @@ export function drawDetails(
       drawValue(
         ctx,
         [cardPadding + (x2 - x1) / 2, valueY - (isDeno() ? 2 : 0)],
-        { token, value }
+        { token, value },
       );
   }
   // CROSS
@@ -288,20 +294,20 @@ export function drawValue(ctx, [x, y], { token, value = 0 }) {
     value > 99999999999999999
       ? 22
       : value > 9999999999999999
-      ? 23
-      : value > 999999999999999
-      ? 24
-      : value > 99999999999999
-      ? 25
-      : value > 9999999999999
-      ? 26
-      : value > 999999999999
-      ? 29
-      : value > 99999999999
-      ? 32
-      : value > 9999999999
-      ? 34
-      : 36;
+        ? 23
+        : value > 999999999999999
+          ? 24
+          : value > 99999999999999
+            ? 25
+            : value > 9999999999999
+              ? 26
+              : value > 999999999999
+                ? 29
+                : value > 99999999999
+                  ? 32
+                  : value > 9999999999
+                    ? 34
+                    : 36;
   if (isTooManyZeros(value)) size = Math.round(size * 0.94);
   const padding = size / 3;
   const gradient = ctx.createLinearGradient(x, y - padding, x, y + padding);
@@ -317,14 +323,32 @@ export function drawValue(ctx, [x, y], { token, value = 0 }) {
 }
 
 export function addSeparator(value) {
-  const moreBillion = value >= 1000000000;
-  return (
-    new Intl.NumberFormat("en-US", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: moreBillion ? 4 : 2,
-    }).format(moreBillion ? value / 1000000000 : value) +
-    (moreBillion ? "B" : "")
-  );
+  if (value === null || value === undefined) return "";
+  const num = Number(value);
+  if (!Number.isFinite(num)) return String(value);
+  if (num === 0) return "0";
+  const isNegative = num < 0;
+  const absValue = Math.abs(num);
+  const digits = Math.trunc(absValue).toString();
+  const suffixCount = Math.floor((digits.length - 1) / 9);
+  const suffix = "B".repeat(suffixCount);
+  if (suffixCount === 0) {
+    return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(
+      num,
+    );
+  }
+  let reduced;
+  if (typeof value === "bigint") {
+    const divisor = 10n ** BigInt(9 * suffixCount);
+    reduced = Number(value < 0n ? -value / divisor : value / divisor);
+  } else {
+    reduced = absValue / 10 ** (9 * suffixCount);
+  }
+  const formatted = new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 4,
+  }).format(reduced);
+  return (isNegative ? "-" : "") + formatted + suffix;
 }
 
 export function drawCross(ctx, [x, y]) {
@@ -376,7 +400,7 @@ export function drawText(
     stroke = "",
     size = 20,
     restrict,
-  } = {}
+  } = {},
 ) {
   ctx.save();
   ctx.font = size + "px " + font;
@@ -458,7 +482,7 @@ export function drawPolyline(ctx, points, { filled = false } = {}) {
 export function drawBorder(
   ctx,
   [[x1, y1], [x2, y2]],
-  { radius = 24, color = "white", line = 3 } = {}
+  { radius = 24, color = "white", line = 3 } = {},
 ) {
   const style = { radius, color, line };
   drawLine(
@@ -467,7 +491,7 @@ export function drawBorder(
       [x1 + radius, y1],
       [x2 - radius, y1],
     ],
-    style
+    style,
   );
   drawLine(
     ctx,
@@ -475,7 +499,7 @@ export function drawBorder(
       [x2, y1 + radius],
       [x2, y2 - radius],
     ],
-    style
+    style,
   );
   drawLine(
     ctx,
@@ -483,7 +507,7 @@ export function drawBorder(
       [x1 + radius, y2],
       [x2 - radius, y2],
     ],
-    style
+    style,
   );
   drawLine(
     ctx,
@@ -491,7 +515,7 @@ export function drawBorder(
       [x1, y1 + radius],
       [x1, y2 - radius],
     ],
-    style
+    style,
   );
   drawArc(ctx, [x1 + radius, y1 + radius], {
     ...style,
