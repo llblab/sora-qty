@@ -324,26 +324,41 @@ export function drawValue(ctx, [x, y], { token, value = 0 }) {
 
 export function addSeparator(value) {
   if (value === null || value === undefined) return "";
+  if (typeof value === "bigint") {
+    if (value === 0n) return "0";
+    const isNegative = value < 0n;
+    const absStr = (isNegative ? -value : value).toString();
+    const suffixCount = Math.floor((absStr.length - 1) / 9);
+    const suffix = "B".repeat(suffixCount);
+    if (suffixCount === 0) {
+      // small bigint: safe to convert to Number for formatting
+      return new Intl.NumberFormat("en-US", {
+        maximumFractionDigits: 2,
+      }).format(Number(value));
+    }
+    const divisor = 10n ** BigInt(9 * suffixCount);
+    const reduced = Number((isNegative ? -value : value) / divisor);
+    const formatted = new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 4,
+    }).format(reduced);
+    return (isNegative ? "-" : "") + formatted + suffix;
+  }
   const num = Number(value);
   if (!Number.isFinite(num)) return String(value);
   if (num === 0) return "0";
   const isNegative = num < 0;
   const absValue = Math.abs(num);
-  const digits = Math.trunc(absValue).toString();
-  const suffixCount = Math.floor((digits.length - 1) / 9);
+  const intPart = Math.trunc(absValue);
+  const exponent = intPart === 0 ? 0 : Math.floor(Math.log10(intPart) + 1e-12);
+  const suffixCount = Math.floor(exponent / 9);
   const suffix = "B".repeat(suffixCount);
   if (suffixCount === 0) {
     return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(
       num,
     );
   }
-  let reduced;
-  if (typeof value === "bigint") {
-    const divisor = 10n ** BigInt(9 * suffixCount);
-    reduced = Number(value < 0n ? -value / divisor : value / divisor);
-  } else {
-    reduced = absValue / 10 ** (9 * suffixCount);
-  }
+  const reduced = absValue / 10 ** (9 * suffixCount);
   const formatted = new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 4,
